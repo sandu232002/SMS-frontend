@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Icons } from "../components/Icons";
+import kduFace from "../assets/kdu-face.jpg";
 
 export default function LoginPage({ onLogin }) {
   const [username, setUsername] = useState("");
@@ -139,17 +140,7 @@ export default function LoginPage({ onLogin }) {
         <div className="hidden md:flex w-1/2 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 flex-col items-center justify-center p-10 gap-6">
           {/* Placeholder campus image */}
           <div className="w-72 h-44 rounded-2xl overflow-hidden shadow-lg bg-white/60 flex items-center justify-center border border-white">
-            <div className="text-center text-gray-400">
-              <svg viewBox="0 0 120 80" className="w-36 mx-auto" fill="none">
-                <rect width="120" height="80" rx="6" fill="#e0e7ef"/>
-                <rect x="10" y="10" width="100" height="60" rx="4" fill="white" opacity="0.6"/>
-                <rect x="45" y="30" width="30" height="40" rx="2" fill="#3b82f6" opacity="0.3"/>
-                <rect x="20" y="40" width="20" height="30" rx="2" fill="#3b82f6" opacity="0.2"/>
-                <rect x="80" y="40" width="20" height="30" rx="2" fill="#3b82f6" opacity="0.2"/>
-                <circle cx="60" cy="20" r="6" fill="#3b82f6" opacity="0.4"/>
-              </svg>
-              <p className="text-xs mt-2 font-medium text-blue-400">KDU Campus</p>
-            </div>
+            <img src={kduFace} alt="Campus" className="object-cover w-full h-full"/>
           </div>
 
           <div className="text-center">
