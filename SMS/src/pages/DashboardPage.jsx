@@ -79,8 +79,8 @@ export default function DashboardPage({ students, courses, logs, setPage }) {
               </button>
             </div>
             <div className="divide-y divide-gray-50">
-              {logs.slice(0, 5).map(log => (
-                <div key={log.id} className="flex items-center gap-4 px-5 py-3">
+              {logs.slice(0, 5).map((log, index) => (
+                <div key={log.id ?? `log-${log.timestamp ?? index}` ?? index} className="flex items-center gap-4 px-5 py-3">
                   <span className="text-xs text-gray-400 w-20 shrink-0 tabular-nums">
                     {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : "—"}
                   </span>

@@ -1,17 +1,38 @@
-import axios from 'axios';
+import axios from "axios";
 
-// Single Axios instance routing all requests through the API Gateway
 const api = axios.create({
-    baseURL: 'http://localhost:8080',
+    baseURL: "http://localhost:8080",
+    headers: {
+        "Content-Type": "application/json"
+    }
 });
 
 // Attach JWT token to every request
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem("token");
+
+        if (token) {
+            config.headers = config.headers || {};
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
     }
-    return config;
-});
+);
+
+// Optional response interceptor for handling auth errors
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            console.error("Unauthorized request. Token may be missing or expired.");
+        }
+        return Promise.reject(error);
+    }
+);
 
 export default api;

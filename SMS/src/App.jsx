@@ -33,6 +33,13 @@ export default function App() {
   const showToast = (message, type = "success") => setToast({ message, type });
 
   // ── Fetch Initial Data ───────────────────────────────────────────────────
+  const normalizeList = (value) => {
+    if (Array.isArray(value)) return value;
+    if (value?.content) return value.content;
+    if (value?.data && Array.isArray(value.data)) return value.data;
+    return [];
+  };
+
   const fetchGlobalData = useCallback(async () => {
     setLoading(true);
     try {
@@ -42,8 +49,8 @@ export default function App() {
         AuditService.getLogs(0, 50),
         StudentService.getDegreePrograms(),
       ]);
-      setStudents(studentsRes || []);
-      setCourses(coursesRes || []);
+      setStudents(normalizeList(studentsRes) || []);
+      setCourses(normalizeList(coursesRes) || []);
       // Backend may return paged object with .content, or a plain array
       setLogs(logsRes?.content || logsRes || []);
       setDegreePrograms(degreeProgramsRes || []);

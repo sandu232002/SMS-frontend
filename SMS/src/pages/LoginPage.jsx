@@ -126,13 +126,6 @@ export default function LoginPage({ onLogin }) {
               {loading ? "Signing in…" : "Login"}
             </button>
 
-            {/* Demo hint */}
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-center text-gray-600">
-              <strong>Demo:</strong> Username:{" "}
-              <code className="bg-white px-1.5 py-0.5 rounded border border-blue-100">admin</code>
-              {" "}| Password:{" "}
-              <code className="bg-white px-1.5 py-0.5 rounded border border-blue-100">admin</code>
-            </div>
           </div>
 
           <p className="text-center text-xs text-gray-400 mt-8">

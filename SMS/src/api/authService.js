@@ -3,41 +3,49 @@ import api from './axiosConfig';
 const BASE = '/api/auth';
 
 export const AuthService = {
-    /**
-     * Login to the application.
-     * @param {Object} credentials - username and password
-     * @returns {Promise<Object>} The JWT and admin metadata
-     */
+
+    // Login
     login: async (credentials) => {
         const response = await api.post(`${BASE}/login`, credentials);
-        if (response.data && response.data.token) {
-            localStorage.setItem('token', response.data.token);
+
+        const res = response.data;
+
+        console.log('[AuthService] Login response:', res);
+
+        // Token may be inside res.data
+        const jwt =
+            res?.data?.token ||
+            res?.data?.accessToken ||
+            res?.data?.access_token ||
+            res?.data?.jwt ||
+            res?.data?.jwtToken ||
+            res?.token ||
+            res?.accessToken ||
+            null;
+
+        if (jwt) {
+            localStorage.setItem('token', jwt);
+            console.log('[AuthService] Token stored successfully');
+        } else {
+            console.warn('[AuthService] Token not found in response');
         }
-        return response.data;
+
+        return res;
     },
 
-    /**
-     * Validate an existing token.
-     * @param {string} token
-     * @returns {Promise<Object>}
-     */
+    // Validate token
     validateToken: async (token) => {
         const response = await api.post(`${BASE}/validate`, { token });
         return response.data;
     },
 
-    /**
-     * Check auth service health. Does not require auth.
-     * @returns {Promise<Object>}
-     */
+    // Health check
     checkHealth: async () => {
         const response = await api.get(`${BASE}/health`);
         return response.data;
     },
 
-    /**
-     * Logout user by clearing token.
-     */
+    // Logout
     logout: () => {
         localStorage.removeItem('token');
     }
