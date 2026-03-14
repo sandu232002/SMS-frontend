@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import StudentService from "./api/studentService";
 import CourseService from "./api/courseService";
 import AuditService from "./api/auditService";
+import EnrollmentService from "./api/enrollmentService";
+import AuthService from "./api/authService";
 
 // Layout
 import { AppLayout } from "./components/Layout";
@@ -15,9 +17,18 @@ import RegisterStudentPage from "./pages/RegisterStudentPage";
 import ManageStudentsPage from "./pages/ManageStudentsPage";
 import CoursesPage from "./pages/CoursesPage";
 import AuditLogsPage from "./pages/AuditLogsPage";
+import EnrollmentsPage from "./pages/EnrollmentsPage";
+import DegreeProgramsPage from "./pages/DegreeProgramsPage";
 
 // Shared UI
 import { Toast } from "./components/UI";
+
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (value?.content) return value.content;
+  if (value?.data && Array.isArray(value.data)) return value.data;
+  return [];
+};
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -27,39 +38,40 @@ export default function App() {
   const [courses, setCourses] = useState([]);
   const [logs, setLogs] = useState([]);
   const [degreePrograms, setDegreePrograms] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const showToast = (message, type = "success") => setToast({ message, type });
 
-  // ── Fetch Initial Data ───────────────────────────────────────────────────
-  const normalizeList = (value) => {
-    if (Array.isArray(value)) return value;
-    if (value?.content) return value.content;
-    if (value?.data && Array.isArray(value.data)) return value.data;
-    return [];
-  };
-
   const fetchGlobalData = useCallback(async () => {
     setLoading(true);
     try {
-      const [studentsRes, coursesRes, logsRes, degreeProgramsRes] = await Promise.all([
+      const [studentsRes, coursesRes, logsRes, degreeProgramsRes, enrollmentsRes] = await Promise.all([
         StudentService.getStudents(),
         CourseService.getCourses(),
         AuditService.getLogs(0, 50),
         StudentService.getDegreePrograms(),
+        EnrollmentService.getEnrollments(),
       ]);
       setStudents(normalizeList(studentsRes) || []);
       setCourses(normalizeList(coursesRes) || []);
       // Backend may return paged object with .content, or a plain array
       setLogs(logsRes?.content || logsRes || []);
       setDegreePrograms(degreeProgramsRes || []);
-    } catch (err) {
-      console.error("Failed to fetch global data:", err);
-      showToast("Error loading initial data", "error");
-    } finally {
-      setLoading(false);
-    }
+      setEnrollments(normalizeList(enrollmentsRes) || []);
+      } catch (err) {
+        console.error("Failed to fetch global data:", err);
+        if (err?.response?.status === 401 || err?.response?.status === 403) {
+          AuthService.logout();
+          setLoggedIn(false);
+          showToast("Session expired or unauthorized. Please log in again.", "error");
+        } else {
+          showToast("Error loading initial data", "error");
+        }
+      } finally {
+        setLoading(false);
+      }
   }, []);
 
   useEffect(() => {
@@ -162,11 +174,29 @@ export default function App() {
             loading={loading}
           />
         );
+      case "degree-programs":
+        return (
+          <DegreeProgramsPage
+            degreePrograms={degreePrograms}
+            onRefreshDegreePrograms={fetchGlobalData}
+            loading={loading}
+          />
+        );
       case "courses":
         return (
           <CoursesPage
             courses={courses}
             onRefreshCourses={fetchGlobalData}
+            loading={loading}
+          />
+        );
+      case "enrollments":
+        return (
+          <EnrollmentsPage
+            enrollments={enrollments}
+            students={students}
+            courses={courses}
+            onRefreshEnrollments={fetchGlobalData}
             loading={loading}
           />
         );

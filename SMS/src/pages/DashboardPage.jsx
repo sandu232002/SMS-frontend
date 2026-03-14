@@ -113,6 +113,18 @@ export default function DashboardPage({ students, courses, logs, setPage }) {
                 <Icons.Courses /> Update Courses
               </button>
               <button
+                onClick={() => setPage("degree-programs")}
+                className="w-full border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+              >
+                <Icons.BookOpen /> Manage Degree Programs
+              </button>
+              <button
+                onClick={() => setPage("enrollments")}
+                className="w-full border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+              >
+                <Icons.User /> Manage Enrollments
+              </button>
+              <button
                 onClick={() => setPage("logs")}
                 className="w-full border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-colors"
               >

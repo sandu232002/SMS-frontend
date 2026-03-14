@@ -213,7 +213,15 @@ export function EmptyState({ message = "No data found." }) {
 }
 
 // ── ActionButton ───────────────────────────────────────────────────────────
-export function ActionButton({ onClick, color = "blue", icon, children, outline = false, small = false }) {
+export function ActionButton({
+  onClick,
+  color = "blue",
+  icon,
+  children,
+  outline = false,
+  small = false,
+  disabled = false,
+}) {
   const variants = {
     blue:  outline ? "border border-blue-200 text-blue-600 hover:bg-blue-50"  : "bg-blue-600 hover:bg-blue-700 text-white",
     red:   outline ? "border border-red-200 text-red-500 hover:bg-red-50"     : "bg-red-500 hover:bg-red-600 text-white",
@@ -222,10 +230,12 @@ export function ActionButton({ onClick, color = "blue", icon, children, outline 
     amber: "border border-amber-200 text-amber-500 hover:bg-amber-50",
   };
   const sizes = small ? "px-3 py-1.5 text-xs" : "px-4 py-2.5 text-sm";
+  const disabledStyles = disabled ? "opacity-50 cursor-not-allowed" : "";
   return (
     <button
       onClick={onClick}
-      className={`rounded-lg font-medium flex items-center gap-2 transition-colors ${variants[color]} ${sizes}`}
+      disabled={disabled}
+      className={`rounded-lg font-medium flex items-center gap-2 transition-colors ${variants[color]} ${sizes} ${disabledStyles}`}
     >
       {icon} {children}
     </button>

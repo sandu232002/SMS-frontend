@@ -56,6 +56,8 @@ const NAV_ITEMS = [
   { key: "register",  label: "Register New Student", Icon: Icons.Register  },
   { key: "students",  label: "Manage Students",      Icon: Icons.Students  },
   { key: "courses",   label: "Courses",              Icon: Icons.Courses   },
+  { key: "degree-programs", label: "Degree Programs", Icon: Icons.BookOpen },
+  { key: "enrollments", label: "Enrollments",        Icon: Icons.User     },
   { key: "logs",      label: "System Audit Logs",    Icon: Icons.Logs      },
 ];
 
