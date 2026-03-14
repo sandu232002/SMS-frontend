@@ -1,26 +1,31 @@
 import { useState } from "react";
 import { Icons } from "../components/Icons";
 import kduFace from "../assets/kdu-face.jpg";
+import AuthService from "../api/authService";
 
 export default function LoginPage({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [showPw,   setShowPw]   = useState(false);
+  const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(false);
-  const [error,    setError]    = useState("");
-  const [loading,  setLoading]  = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!username || !password) {
       setError("Please enter your username and password.");
       return;
     }
-    // TODO: replace with real API call
-    if (username === "admin" && password === "admin") {
-      setLoading(true);
-      setTimeout(() => { setLoading(false); onLogin(); }, 600);
-    } else {
-      setError("Invalid credentials. Use admin / admin for demo.");
+
+    setLoading(true);
+    try {
+      const loginData = await AuthService.login({ username, password });
+      onLogin(loginData); // App.jsx extracts adminId and sets loggedIn(true)
+    } catch (err) {
+      console.error("Login failed:", err);
+      setError("Invalid credentials or server error. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -114,8 +119,8 @@ export default function LoginPage({ onLogin }) {
             >
               {loading ? (
                 <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                 </svg>
               ) : null}
               {loading ? "Signing in…" : "Login"}
@@ -140,7 +145,7 @@ export default function LoginPage({ onLogin }) {
         <div className="hidden md:flex w-1/2 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 flex-col items-center justify-center p-10 gap-6">
           {/* Placeholder campus image */}
           <div className="w-72 h-44 rounded-2xl overflow-hidden shadow-lg bg-white/60 flex items-center justify-center border border-white">
-            <img src={kduFace} alt="Campus" className="object-cover w-full h-full"/>
+            <img src={kduFace} alt="Campus" className="object-cover w-full h-full" />
           </div>
 
           <div className="text-center">

@@ -82,11 +82,11 @@ export default function DashboardPage({ students, courses, logs, setPage }) {
               {logs.slice(0, 5).map(log => (
                 <div key={log.id} className="flex items-center gap-4 px-5 py-3">
                   <span className="text-xs text-gray-400 w-20 shrink-0 tabular-nums">
-                    {log.timestamp.split(", ")[1]}
+                    {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : "—"}
                   </span>
-                  <Badge type={log.action} />
-                  <span className="text-sm text-gray-700 font-medium shrink-0">{log.user}</span>
-                  <span className="text-sm text-gray-500 truncate">{log.target}</span>
+                  <Badge type={log.actionType} />
+                  <span className="text-sm text-gray-700 font-medium shrink-0">Admin {log.adminId}</span>
+                  <span className="text-sm text-gray-500 truncate">{log.entityName} (ID: {log.entityId})</span>
                 </div>
               ))}
             </div>

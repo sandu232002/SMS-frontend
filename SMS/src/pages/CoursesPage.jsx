@@ -2,70 +2,119 @@ import { useState } from "react";
 import { Icons } from "../components/Icons";
 import {
   Breadcrumb, PageHeader, Card, Modal, Toggle, FormField,
-  Input, Select, ActionButton,
+  Input, Select, ActionButton, Toast
 } from "../components/UI";
+import CourseService from "../api/courseService";
+import AuditService from "../api/auditService";
 
 const DEGREES = ["Software Engineering", "Computer Science", "Information Technology", "Business IT"];
 
 const EMPTY_COURSE = {
-  code: "", name: "", degree: DEGREES[0],
-  semester: "1", year: "1", credits: "3", capacity: "30", description: "",
+  courseCode: "", courseName: "", degree: DEGREES[0],
+  semester: "1", year: "1", creditValue: "3", capacity: "30", description: "",
 };
 
 /**
  * CoursesPage
  * Props:
- *   courses:    array
- *   setCourses: (updater) => void
+ *   courses:          array
+ *   onRefreshCourses: () => void
  */
-export default function CoursesPage({ courses, setCourses }) {
-  const [search,     setSearch]     = useState("");
-  const [showAdd,    setShowAdd]    = useState(false);
+export default function CoursesPage({ courses, onRefreshCourses }) {
+  const [search, setSearch] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [viewCourse, setViewCourse] = useState(null);
-  const [newCourse,  setNewCourse]  = useState(EMPTY_COURSE);
+  const [newCourse, setNewCourse] = useState(EMPTY_COURSE);
   const [formErrors, setFormErrors] = useState({});
+  const [, setToast] = useState(null);
 
+  const showToast = (message, type = "success") => setToast({ message, type });
   const setField = (k, v) => setNewCourse(f => ({ ...f, [k]: v }));
 
   const filtered = courses.filter(
     c =>
       !search ||
-      c.code.toLowerCase().includes(search.toLowerCase()) ||
-      c.name.toLowerCase().includes(search.toLowerCase())
+      c.courseCode?.toLowerCase().includes(search.toLowerCase()) ||
+      c.courseName?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const toggleStatus = code =>
-    setCourses(cs => cs.map(c => c.code === code ? { ...c, status: !c.status } : c));
+  const toggleStatus = () => {
+    // Stub: In reality this calls updateCourse status or logic. Since API only modifies basic data right now, just show toast
+    showToast("Toggling active status is not implemented in core API yet", "error");
+  }
 
-  const deleteCourse = code =>
-    setCourses(cs => cs.filter(c => c.code !== code));
+  const deleteCourse = async (id, codeStr) => {
+    try {
+      await CourseService.deleteCourse(id);
+      await AuditService.logAction({
+        adminId: 1, // hardcoded assuming currently logged in user admin
+        entityName: "Course",
+        entityId: id,
+        actionType: "DELETE",
+        description: `Deleted course: ${codeStr}`
+      });
+      showToast("Course deleted successfully");
+      onRefreshCourses();
+    } catch {
+      showToast("Failed to delete course", "error");
+    }
+  };
 
   const validateCourse = () => {
     const e = {};
-    if (!newCourse.code.trim()) e.code = "Course code is required.";
-    if (!newCourse.name.trim()) e.name = "Course name is required.";
+    if (!newCourse.courseCode.trim()) e.courseCode = "Course code is required.";
+    if (!newCourse.courseName.trim()) e.courseName = "Course name is required.";
     return e;
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     const e = validateCourse();
     if (Object.keys(e).length) { setFormErrors(e); return; }
-    setCourses(cs => [
-      ...cs,
-      {
-        ...newCourse,
-        semester: +newCourse.semester, year: +newCourse.year,
-        credits: +newCourse.credits, capacity: +newCourse.capacity,
-        enrolled: 0, status: true,
-      },
-    ]);
-    setShowAdd(false);
-    setNewCourse(EMPTY_COURSE);
-    setFormErrors({});
+
+    try {
+      const payload = {
+        courseCode: newCourse.courseCode,
+        courseName: newCourse.courseName,
+        creditValue: Number(newCourse.creditValue),
+        semester: newCourse.semester
+      };
+
+      if (editTarget) {
+        await CourseService.updateCourse(editTarget, payload);
+        await AuditService.logAction({
+          adminId: 1,
+          entityName: "Course",
+          entityId: editTarget,
+          actionType: "UPDATE",
+          description: `Updated course: ${newCourse.courseCode}`
+        });
+        showToast("Course updated successfully");
+      } else {
+        const res = await CourseService.createCourse(payload);
+        await AuditService.logAction({
+          adminId: 1,
+          entityName: "Course",
+          entityId: res.id || 0,
+          actionType: "CREATE",
+          description: `Created new course: ${newCourse.courseCode}`
+        });
+        showToast("Course created successfully");
+      }
+
+      setShowAdd(false);
+      setNewCourse(EMPTY_COURSE);
+      setFormErrors({});
+      setEditTarget(null);
+      onRefreshCourses();
+
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to save course", "error");
+    }
   };
 
-  const openAdd = () => { setNewCourse(EMPTY_COURSE); setFormErrors({}); setShowAdd(true); };
+  const openAdd = () => { setNewCourse(EMPTY_COURSE); setFormErrors({}); setShowAdd(true); setEditTarget(null); };
 
   return (
     <div>
@@ -97,30 +146,29 @@ export default function CoursesPage({ courses, setCourses }) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(c => (
           <div
-            key={c.code}
-            className={`bg-white rounded-xl border shadow-sm overflow-hidden transition-opacity ${
-              c.status ? "border-gray-100" : "border-gray-200 opacity-70"
-            }`}
+            key={c.id || c.courseCode}
+            className={`bg-white rounded-xl border shadow-sm overflow-hidden transition-opacity ${c.status !== false ? "border-gray-100" : "border-gray-200 opacity-70"
+              }`}
           >
             <div className="p-5">
               {/* Header row */}
               <div className="flex items-start justify-between mb-2">
                 <div>
-                  <span className="text-blue-600 font-bold text-lg leading-none">{c.code}</span>
-                  <h3 className="font-semibold text-gray-800 mt-0.5">{c.name}</h3>
+                  <span className="text-blue-600 font-bold text-lg leading-none">{c.courseCode}</span>
+                  <h3 className="font-semibold text-gray-800 mt-0.5">{c.courseName}</h3>
                 </div>
-                <Toggle checked={c.status} onChange={() => toggleStatus(c.code)} />
+                <Toggle checked={c.status !== false} onChange={() => toggleStatus(c.id)} />
               </div>
 
               {/* Meta */}
               <div className="space-y-1.5 my-3">
                 <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <Icons.Courses /> Semester {c.semester}, Year {c.year}
+                  <Icons.Courses /> Semester {c.semester}, Year {c.year || "N/A"}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <Icons.Students /> {c.enrolled} / {c.capacity} students enrolled
+                  <Icons.Students /> {c.enrolled || 0} / {c.capacity || "N/A"} students enrolled
                 </div>
-                <div className="text-xs text-gray-500">Credit Hours: {c.credits}</div>
+                <div className="text-xs text-gray-500">Credit Hours: {c.creditValue}</div>
               </div>
 
               {/* Actions */}
@@ -132,13 +180,13 @@ export default function CoursesPage({ courses, setCourses }) {
                   View Details
                 </button>
                 <button
-                  onClick={() => { setNewCourse({ ...c, semester: String(c.semester), year: String(c.year), credits: String(c.credits), capacity: String(c.capacity) }); setEditTarget(c.code); setShowAdd(true); }}
+                  onClick={() => { setNewCourse({ ...c, semester: String(c.semester || ""), year: String(c.year || ""), creditValue: String(c.creditValue || ""), capacity: String(c.capacity || "") }); setEditTarget(c.id); setShowAdd(true); }}
                   className="p-1.5 border border-gray-200 rounded-lg hover:bg-amber-50 text-amber-500 transition-colors"
                 >
                   <Icons.Edit />
                 </button>
                 <button
-                  onClick={() => deleteCourse(c.code)}
+                  onClick={() => deleteCourse(c.id, c.courseCode)}
                   className="p-1.5 border border-gray-200 rounded-lg hover:bg-red-50 text-red-400 transition-colors"
                 >
                   <Icons.Trash />
@@ -147,8 +195,8 @@ export default function CoursesPage({ courses, setCourses }) {
             </div>
 
             {/* Status bar */}
-            <div className={`px-5 py-2 text-xs font-medium ${c.status ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-500"}`}>
-              Status: {c.status ? "Active" : "Inactive"}
+            <div className={`px-5 py-2 text-xs font-medium ${c.status !== false ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-500"}`}>
+              Status: {c.status !== false ? "Active" : "Inactive"}
             </div>
           </div>
         ))}
@@ -165,21 +213,21 @@ export default function CoursesPage({ courses, setCourses }) {
           onClose={() => { setShowAdd(false); setEditTarget(null); }}
         >
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="Course Code" required error={formErrors.code}>
+            <FormField label="Course Code" required error={formErrors.courseCode}>
               <Input
-                value={newCourse.code}
-                onChange={e => setField("code", e.target.value)}
+                value={newCourse.courseCode}
+                onChange={e => setField("courseCode", e.target.value)}
                 placeholder="e.g. SE101"
-                error={formErrors.code}
+                error={formErrors.courseCode}
               />
             </FormField>
 
-            <FormField label="Course Name" required error={formErrors.name}>
+            <FormField label="Course Name" required error={formErrors.courseName}>
               <Input
-                value={newCourse.name}
-                onChange={e => setField("name", e.target.value)}
+                value={newCourse.courseName}
+                onChange={e => setField("courseName", e.target.value)}
                 placeholder="e.g. Software Construction"
-                error={formErrors.name}
+                error={formErrors.courseName}
               />
             </FormField>
 
@@ -189,7 +237,7 @@ export default function CoursesPage({ courses, setCourses }) {
               </Select>
             </FormField>
 
-            {[["Year","year"],["Semester","semester"],["Credit Hours","credits"],["Capacity","capacity"]].map(([l,k]) => (
+            {[["Year", "year"], ["Semester", "semester"], ["Credit Hours", "creditValue"], ["Capacity", "capacity"]].map(([l, k]) => (
               <FormField key={k} label={l}>
                 <Input
                   type="number"
@@ -224,16 +272,16 @@ export default function CoursesPage({ courses, setCourses }) {
 
       {/* ── View Course Modal ── */}
       {viewCourse && (
-        <Modal title={`${viewCourse.code} – ${viewCourse.name}`} onClose={() => setViewCourse(null)}>
+        <Modal title={`${viewCourse.courseCode} – ${viewCourse.courseName}`} onClose={() => setViewCourse(null)}>
           <div className="grid grid-cols-2 gap-5 mb-5">
             {[
-              ["Degree Program", viewCourse.degree],
-              ["Academic Year",  `Year ${viewCourse.year}`],
-              ["Semester",       `Semester ${viewCourse.semester}`],
-              ["Credit Hours",   viewCourse.credits],
-              ["Capacity",       viewCourse.capacity],
-              ["Enrolled",       viewCourse.enrolled],
-              ["Status",         viewCourse.status ? "Active" : "Inactive"],
+              ["Degree Program", viewCourse.degree || "N/A"],
+              ["Academic Year", `Year ${viewCourse.year || "N/A"}`],
+              ["Semester", `Semester ${viewCourse.semester}`],
+              ["Credit Hours", viewCourse.creditValue],
+              ["Capacity", viewCourse.capacity || "N/A"],
+              ["Enrolled", viewCourse.enrolled || 0],
+              ["Status", viewCourse.status !== false ? "Active" : "Inactive"],
             ].map(([k, v]) => (
               <div key={k}>
                 <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{k}</div>

@@ -5,27 +5,23 @@ import {
   ActionButton,
 } from "../components/UI";
 
-const DEGREES   = ["Software Engineering", "Computer Science", "Information Technology", "Business IT"];
 const YEARS     = [1, 2, 3, 4];
 const SEMESTERS = [1, 2];
-
-function generateId() {
-  return `KDU-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 900) + 100)}`;
-}
 
 /**
  * RegisterStudentPage
  * Props:
- *   onRegister: (studentData: object) => void
- *   onCancel:   () => void
+ *   onRegister:     (studentData: object) => void
+ *   onCancel:       () => void
+ *   degreePrograms: Array<{ id: number, degreeName: string }> — from backend
  */
-export default function RegisterStudentPage({ onRegister, onCancel }) {
+export default function RegisterStudentPage({ onRegister, onCancel, degreePrograms = [] }) {
   const [form, setForm] = useState({
     firstName: "", lastName: "", dob: "",
-    studentId: generateId(),
     email: "", phone: "",
     address: "", address2: "", city: "", postal: "",
-    degree: DEGREES[0], year: "1", semester: "1", gpa: "",
+    degreeProgramId: degreePrograms[0]?.id ?? "",
+    year: "1", semester: "1", gpa: "",
   });
   const [errors, setErrors] = useState({});
 
@@ -38,13 +34,14 @@ export default function RegisterStudentPage({ onRegister, onCancel }) {
     if (!form.dob)              e.dob       = "Date of birth is required.";
     if (!form.email.trim())     e.email     = "Email is required.";
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Enter a valid email.";
+    if (!form.degreeProgramId)  e.degreeProgramId = "Degree program is required.";
     return e;
   };
 
   const handleSubmit = () => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
-    onRegister({ ...form, year: +form.year, semester: +form.semester });
+    onRegister({ ...form, year: +form.year, semester: +form.semester, degreeProgramId: Number(form.degreeProgramId) });
   };
 
   // Helper for simple text / date inputs
@@ -81,27 +78,6 @@ export default function RegisterStudentPage({ onRegister, onCancel }) {
               {field("First Name", "firstName", { required: true, placeholder: "Enter first name" })}
               {field("Last Name",  "lastName",  { required: true, placeholder: "Enter last name"  })}
               {field("Date of Birth", "dob", { type: "date", required: true })}
-
-              {/* Student ID with regenerate button */}
-              <FormField
-                label="Student ID Number"
-                required
-                hint="Valid Student ID format: KDU-YYYY-XXX"
-              >
-                <div className="flex gap-2">
-                  <Input
-                    value={form.studentId}
-                    onChange={e => set("studentId", e.target.value)}
-                  />
-                  <button
-                    onClick={() => set("studentId", generateId())}
-                    className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500 transition-colors shrink-0"
-                    title="Generate new ID"
-                  >
-                    <Icons.Refresh />
-                  </button>
-                </div>
-              </FormField>
             </div>
           </section>
 
@@ -126,10 +102,25 @@ export default function RegisterStudentPage({ onRegister, onCancel }) {
           <section>
             <SectionHeading icon={<Icons.BookOpen />}>Academic Information</SectionHeading>
             <div className="grid grid-cols-2 gap-4">
-              <FormField label="Degree Program" required colSpan={2}>
-                <Select value={form.degree} onChange={e => set("degree", e.target.value)}>
-                  {DEGREES.map(d => <option key={d}>{d}</option>)}
-                </Select>
+              <FormField label="Degree Program" required colSpan={2} error={errors.degreeProgramId}>
+                {degreePrograms.length > 0 ? (
+                  <Select
+                    value={form.degreeProgramId}
+                    onChange={e => { set("degreeProgramId", e.target.value); setErrors(p => ({ ...p, degreeProgramId: "" })); }}
+                    error={errors.degreeProgramId}
+                  >
+                    <option value="">-- Select Degree Program --</option>
+                    {degreePrograms.map(dp => (
+                      <option key={dp.id} value={dp.id}>
+                        {dp.degreeName || dp.name || `Program ${dp.id}`}
+                      </option>
+                    ))}
+                  </Select>
+                ) : (
+                  <p className="text-sm text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                    Loading degree programs… (ensure the backend is running)
+                  </p>
+                )}
               </FormField>
 
               <FormField label="Academic Year">

@@ -16,22 +16,22 @@ const STATUSES = ["All", "Active", "Graduated", "Suspended"];
  *   onEdit:   (student: object) => void  (optional / wire up later)
  */
 export default function ManageStudentsPage({ students, onDelete }) {
-  const [search,       setSearch]       = useState("");
+  const [search, setSearch] = useState("");
   const [filterDegree, setFilterDegree] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
-  const [viewStudent,  setViewStudent]  = useState(null);
+  const [viewStudent, setViewStudent] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const filtered = students.filter(s => {
     const q = search.toLowerCase();
     const matchSearch =
       !q ||
-      s.firstName.toLowerCase().includes(q) ||
-      s.lastName.toLowerCase().includes(q)  ||
-      s.id.toLowerCase().includes(q)         ||
-      s.email.toLowerCase().includes(q);
+      s.firstName?.toLowerCase().includes(q) ||
+      s.lastName?.toLowerCase().includes(q) ||
+      s.studentNumber?.toLowerCase().includes(q) ||
+      s.email?.toLowerCase().includes(q);
     const matchDegree = filterDegree === "All" || s.degree === filterDegree;
-    const matchStatus = filterStatus === "All" || s.status === filterStatus;
+    const matchStatus = filterStatus === "All" || (s.status || "Active") === filterStatus;
     return matchSearch && matchDegree && matchStatus;
   });
 
@@ -39,7 +39,7 @@ export default function ManageStudentsPage({ students, onDelete }) {
     gpa >= 3.7 ? "text-green-600" : gpa >= 3.0 ? "text-blue-600" : "text-amber-600";
 
   const statusStyle = status => ({
-    Active:    "bg-green-100 text-green-700",
+    Active: "bg-green-100 text-green-700",
     Graduated: "bg-blue-100 text-blue-700",
     Suspended: "bg-red-100 text-red-600",
   }[status] || "bg-gray-100 text-gray-600");
@@ -90,7 +90,7 @@ export default function ManageStudentsPage({ students, onDelete }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-left">
-                {["Student ID","Name","Degree Program","Year / Sem","GPA","Status","Actions"].map(h => (
+                {["Student ID", "Name", "Degree Program", "Year / Sem", "GPA", "Status", "Actions"].map(h => (
                   <th key={h} className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                     {h}
                   </th>
@@ -102,24 +102,24 @@ export default function ManageStudentsPage({ students, onDelete }) {
                 <EmptyState message="No students match your search or filters." />
               ) : (
                 filtered.map(s => (
-                  <tr key={s.id} className="hover:bg-gray-50/60 transition-colors">
+                  <tr key={s.id || s.studentNumber} className="hover:bg-gray-50/60 transition-colors">
                     <td className="px-5 py-3.5 font-mono text-blue-600 text-xs font-medium whitespace-nowrap">
-                      {s.id}
+                      {s.studentNumber || s.id}
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="font-medium text-gray-800">{s.firstName} {s.lastName}</div>
-                      <div className="text-xs text-gray-400">{s.email}</div>
+                      <div className="text-xs text-gray-400">{s.email || "—"}</div>
                     </td>
-                    <td className="px-5 py-3.5 text-gray-600">{s.degree}</td>
+                    <td className="px-5 py-3.5 text-gray-600">{s.degree || "—"}</td>
                     <td className="px-5 py-3.5 text-gray-600 tabular-nums">
-                      Year {s.year} / Sem {s.semester}
+                      Year {s.year || "N/A"} / Sem {s.semester || "N/A"}
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className={`font-bold ${gpaColor(s.gpa)}`}>{s.gpa.toFixed(1)}</span>
+                      <span className={`font-bold ${gpaColor(s.gpa || 0)}`}>{(s.gpa || 0).toFixed(1)}</span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusStyle(s.status)}`}>
-                        {s.status}
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusStyle(s.status || "Active")}`}>
+                        {s.status || "Active"}
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
@@ -159,15 +159,15 @@ export default function ManageStudentsPage({ students, onDelete }) {
         <Modal title={`${viewStudent.firstName} ${viewStudent.lastName}`} onClose={() => setViewStudent(null)}>
           <div className="grid grid-cols-2 gap-5">
             {[
-              ["Student ID",       viewStudent.id],
-              ["Email",            viewStudent.email],
-              ["Phone",            viewStudent.phone || "—"],
-              ["Date of Birth",    viewStudent.dob],
-              ["Degree Program",   viewStudent.degree],
-              ["Year / Semester",  `Year ${viewStudent.year} / Semester ${viewStudent.semester}`],
-              ["GPA",              viewStudent.gpa.toFixed(2)],
-              ["Status",           viewStudent.status],
-              ["City",             viewStudent.city || "—"],
+              ["Student ID", viewStudent.studentNumber || viewStudent.id],
+              ["Email", viewStudent.email || "—"],
+              ["Phone", viewStudent.phone || "—"],
+              ["Date of Birth", viewStudent.dateOfBirth || viewStudent.dob || "—"],
+              ["Degree Program", viewStudent.degree || "—"],
+              ["Year / Semester", `Year ${viewStudent.year || "N/A"} / Semester ${viewStudent.semester || "N/A"}`],
+              ["GPA", (viewStudent.gpa || 0).toFixed(2)],
+              ["Status", viewStudent.status || "Active"],
+              ["Address", viewStudent.address || "—"],
               ["Enrolled Courses", viewStudent.enrolled?.join(", ") || "—"],
             ].map(([k, v]) => (
               <div key={k}>
