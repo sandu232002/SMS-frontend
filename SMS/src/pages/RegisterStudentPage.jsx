@@ -18,7 +18,6 @@ const SEMESTERS = [1, 2];
 export default function RegisterStudentPage({ onRegister, onCancel, degreePrograms = [] }) {
   const [form, setForm] = useState({
     firstName: "", lastName: "", dob: "",
-    email: "", phone: "",
     address: "", address2: "", city: "", postal: "",
     degreeProgramId: degreePrograms[0]?.id ?? "",
     year: "1", semester: "1", gpa: "",
@@ -32,8 +31,6 @@ export default function RegisterStudentPage({ onRegister, onCancel, degreeProgra
     if (!form.firstName.trim()) e.firstName = "First name is required.";
     if (!form.lastName.trim())  e.lastName  = "Last name is required.";
     if (!form.dob)              e.dob       = "Date of birth is required.";
-    if (!form.email.trim())     e.email     = "Email is required.";
-    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Enter a valid email.";
     if (!form.degreeProgramId)  e.degreeProgramId = "Degree program is required.";
     return e;
   };
@@ -91,10 +88,8 @@ export default function RegisterStudentPage({ onRegister, onCancel, degreeProgra
               <FormField label="Address Line 2 (Optional)" colSpan={2}>
                 <Input value={form.address2} onChange={e => set("address2", e.target.value)} placeholder="Apartment, suite, etc." />
               </FormField>
-              {field("City",        "city",   { placeholder: "City" })}
-              {field("Postal Code", "postal", { placeholder: "00000" })}
-              {field("Email",  "email",  { type: "email", required: true, placeholder: "student@kdu.edu" })}
-              {field("Phone",  "phone",  { placeholder: "+94 XX XXX XXXX" })}
+              {field("City",        "city",   { placeholder: "City", full: true })}
+              {field("Postal Code", "postal", { placeholder: "00000", full: true })}
             </div>
           </section>
 

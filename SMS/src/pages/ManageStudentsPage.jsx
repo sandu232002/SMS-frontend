@@ -90,7 +90,7 @@ export default function ManageStudentsPage({ students, onDelete }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-left">
-                {["Student ID", "Name", "Degree Program", "Year / Sem", "GPA", "Status", "Actions"].map(h => (
+                {["Student ID", "Name", "Degree Program", "Status", "Actions"].map(h => (
                   <th key={h} className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                     {h}
                   </th>
@@ -111,12 +111,6 @@ export default function ManageStudentsPage({ students, onDelete }) {
                       <div className="text-xs text-gray-400">{s.email || "—"}</div>
                     </td>
                     <td className="px-5 py-3.5 text-gray-600">{s.degree || "—"}</td>
-                    <td className="px-5 py-3.5 text-gray-600 tabular-nums">
-                      Year {s.year || "N/A"} / Sem {s.semester || "N/A"}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className={`font-bold ${gpaColor(s.gpa || 0)}`}>{(s.gpa || 0).toFixed(1)}</span>
-                    </td>
                     <td className="px-5 py-3.5">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusStyle(s.status || "Active")}`}>
                         {s.status || "Active"}
@@ -160,15 +154,10 @@ export default function ManageStudentsPage({ students, onDelete }) {
           <div className="grid grid-cols-2 gap-5">
             {[
               ["Student ID", viewStudent.studentNumber || viewStudent.id],
-              ["Email", viewStudent.email || "—"],
-              ["Phone", viewStudent.phone || "—"],
               ["Date of Birth", viewStudent.dateOfBirth || viewStudent.dob || "—"],
               ["Degree Program", viewStudent.degree || "—"],
-              ["Year / Semester", `Year ${viewStudent.year || "N/A"} / Semester ${viewStudent.semester || "N/A"}`],
-              ["GPA", (viewStudent.gpa || 0).toFixed(2)],
               ["Status", viewStudent.status || "Active"],
               ["Address", viewStudent.address || "—"],
-              ["Enrolled Courses", viewStudent.enrolled?.join(", ") || "—"],
             ].map(([k, v]) => (
               <div key={k}>
                 <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{k}</div>

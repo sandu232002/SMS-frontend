@@ -82,6 +82,27 @@ export const StudentService = {
     createDegreeProgram: async (programData) => {
         const response = await api.post(`${BASE}/degree-programs`, programData);
         return response.data;
+    },
+
+    /**
+     * Update a degree program.
+     * @param {number} id
+     * @param {Object} programData
+     * @returns {Promise<Object>}
+     */
+    updateDegreeProgram: async (id, programData) => {
+        const response = await api.put(`${BASE}/degree-programs/${id}`, programData);
+        return response.data;
+    },
+
+    /**
+     * Delete a degree program.
+     * @param {number} id
+     * @returns {Promise<Object>}
+     */
+    deleteDegreeProgram: async (id) => {
+        const response = await api.delete(`${BASE}/degree-programs/${id}`);
+        return response.data;
     }
 };
 

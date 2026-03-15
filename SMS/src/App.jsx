@@ -58,7 +58,7 @@ export default function App() {
       setCourses(normalizeList(coursesRes) || []);
       // Backend may return paged object with .content, or a plain array
       setLogs(logsRes?.content || logsRes || []);
-      setDegreePrograms(degreeProgramsRes || []);
+      setDegreePrograms(normalizeList(degreeProgramsRes) || []);
       setEnrollments(normalizeList(enrollmentsRes) || []);
       } catch (err) {
         console.error("Failed to fetch global data:", err);

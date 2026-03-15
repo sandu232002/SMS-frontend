@@ -29,6 +29,8 @@ export default function DegreeProgramsPage({
   const [formData, setFormData] = useState(defaultForm());
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const resetForm = () => {
     setFormErrors({});
@@ -37,6 +39,7 @@ export default function DegreeProgramsPage({
 
   const closeModal = () => {
     setModalOpen(false);
+    setEditTarget(null);
     resetForm();
   };
 
@@ -66,14 +69,25 @@ export default function DegreeProgramsPage({
         creditValue: Number(formData.creditValue),
         durationYears: Number(formData.durationYears),
       };
-      const result = await StudentService.createDegreeProgram(payload);
-      await AuditService.logAction({
-        adminId: 1,
-        entityName: "DegreeProgram",
-        entityId: result.id || 0,
-        actionType: "CREATE",
-        description: `Created degree program ${payload.degreeName}`,
-      });
+      if (editTarget) {
+        await StudentService.updateDegreeProgram(editTarget.id, payload);
+        await AuditService.logAction({
+          adminId: 1,
+          entityName: "DegreeProgram",
+          entityId: editTarget.id || 0,
+          actionType: "UPDATE",
+          description: `Updated degree program ${payload.degreeName}`,
+        });
+      } else {
+        const result = await StudentService.createDegreeProgram(payload);
+        await AuditService.logAction({
+          adminId: 1,
+          entityName: "DegreeProgram",
+          entityId: result.id || 0,
+          actionType: "CREATE",
+          description: `Created degree program ${payload.degreeName}`,
+        });
+      }
       closeModal();
       onRefreshDegreePrograms?.();
     } catch (err) {
@@ -81,6 +95,24 @@ export default function DegreeProgramsPage({
       setFormErrors({ form: "Unable to save program right now." });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await StudentService.deleteDegreeProgram(deleteTarget.id);
+      await AuditService.logAction({
+        adminId: 1,
+        entityName: "DegreeProgram",
+        entityId: deleteTarget.id || 0,
+        actionType: "DELETE",
+        description: `Deleted degree program ${deleteTarget.degreeName}`,
+      });
+      setDeleteTarget(null);
+      onRefreshDegreePrograms?.();
+    } catch (err) {
+      console.error("Failed to delete degree program:", err);
     }
   };
 
@@ -126,6 +158,29 @@ export default function DegreeProgramsPage({
                 <span>Credits</span>
                 <span className="font-bold text-gray-800">{program.creditValue ?? "—"}</span>
               </div>
+              <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => {
+                    setFormData({
+                      degreeName: program.degreeName || "",
+                      departmentName: program.departmentName || "",
+                      creditValue: program.creditValue || "",
+                      durationYears: program.durationYears || "",
+                    });
+                    setEditTarget(program);
+                    setModalOpen(true);
+                  }}
+                  className="p-1.5 border border-gray-200 rounded-lg hover:bg-amber-50 text-amber-500 transition-colors"
+                >
+                  <Icons.Edit />
+                </button>
+                <button
+                  onClick={() => setDeleteTarget(program)}
+                  className="p-1.5 border border-gray-200 rounded-lg hover:bg-red-50 text-red-400 transition-colors"
+                >
+                  <Icons.Trash />
+                </button>
+              </div>
             </Card>
           ))
         ) : (
@@ -136,7 +191,7 @@ export default function DegreeProgramsPage({
       </div>
 
       {modalOpen && (
-        <Modal title="Add Degree Program" onClose={closeModal}>
+        <Modal title={editTarget ? "Edit Degree Program" : "Add Degree Program"} onClose={closeModal}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label="Degree Name" required error={formErrors.degreeName}>
               <Input
@@ -175,6 +230,19 @@ export default function DegreeProgramsPage({
             <ActionButton onClick={handleSave} disabled={saving}>
               {saving ? "Saving…" : "Save Program"}
             </ActionButton>
+          </div>
+        </Modal>
+      )}
+
+      {deleteTarget && (
+        <Modal title="Confirm Deletion" onClose={() => setDeleteTarget(null)} size="sm">
+          <p className="text-gray-600 mb-2">
+            Are you sure you want to delete{" "}
+            <strong className="text-gray-800">{deleteTarget.degreeName}</strong>?
+          </p>
+          <div className="flex justify-end gap-3 mt-6">
+            <ActionButton color="gray" onClick={() => setDeleteTarget(null)} outline>Cancel</ActionButton>
+            <ActionButton color="red" onClick={handleDelete}>Delete Program</ActionButton>
           </div>
         </Modal>
       )}

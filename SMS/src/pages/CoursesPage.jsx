@@ -163,10 +163,10 @@ export default function CoursesPage({ courses, onRefreshCourses }) {
               {/* Meta */}
               <div className="space-y-1.5 my-3">
                 <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <Icons.Courses /> Semester {c.semester}, Year {c.year || "N/A"}
+                  <Icons.Courses /> Semester {c.semester}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <Icons.Students /> {c.enrolled || 0} / {c.capacity || "N/A"} students enrolled
+                  <Icons.Students /> Capacity: {c.capacity || "N/A"}
                 </div>
                 <div className="text-xs text-gray-500">Credit Hours: {c.creditValue}</div>
               </div>
@@ -276,11 +276,9 @@ export default function CoursesPage({ courses, onRefreshCourses }) {
           <div className="grid grid-cols-2 gap-5 mb-5">
             {[
               ["Degree Program", viewCourse.degree || "N/A"],
-              ["Academic Year", `Year ${viewCourse.year || "N/A"}`],
               ["Semester", `Semester ${viewCourse.semester}`],
               ["Credit Hours", viewCourse.creditValue],
               ["Capacity", viewCourse.capacity || "N/A"],
-              ["Enrolled", viewCourse.enrolled || 0],
               ["Status", viewCourse.status !== false ? "Active" : "Inactive"],
             ].map(([k, v]) => (
               <div key={k}>
