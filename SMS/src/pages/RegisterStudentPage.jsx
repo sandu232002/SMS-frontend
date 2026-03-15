@@ -19,7 +19,7 @@ export default function RegisterStudentPage({ onRegister, onCancel, degreeProgra
   const [form, setForm] = useState({
     firstName: "", lastName: "", dob: "",
     address: "", address2: "", city: "", postal: "",
-    degreeProgramId: degreePrograms[0]?.id ?? "",
+    degreeProgramId: degreePrograms[0]?.degreeProgramId ?? degreePrograms[0]?.id ?? "",
     year: "1", semester: "1", gpa: "",
   });
   const [errors, setErrors] = useState({});
@@ -106,8 +106,8 @@ export default function RegisterStudentPage({ onRegister, onCancel, degreeProgra
                   >
                     <option value="">-- Select Degree Program --</option>
                     {degreePrograms.map(dp => (
-                      <option key={dp.id} value={dp.id}>
-                        {dp.degreeName || dp.name || `Program ${dp.id}`}
+                      <option key={dp.degreeProgramId || dp.id} value={dp.degreeProgramId || dp.id}>
+                        {dp.degreeName || dp.name || `Program ${dp.degreeProgramId || dp.id}`}
                       </option>
                     ))}
                   </Select>

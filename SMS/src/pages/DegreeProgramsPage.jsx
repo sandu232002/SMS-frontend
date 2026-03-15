@@ -70,11 +70,11 @@ export default function DegreeProgramsPage({
         durationYears: Number(formData.durationYears),
       };
       if (editTarget) {
-        await StudentService.updateDegreeProgram(editTarget.id, payload);
+        await StudentService.updateDegreeProgram(editTarget.degreeProgramId || editTarget.id, payload);
         await AuditService.logAction({
           adminId: 1,
           entityName: "DegreeProgram",
-          entityId: editTarget.id || 0,
+          entityId: editTarget.degreeProgramId || editTarget.id || 0,
           actionType: "UPDATE",
           description: `Updated degree program ${payload.degreeName}`,
         });
@@ -83,7 +83,7 @@ export default function DegreeProgramsPage({
         await AuditService.logAction({
           adminId: 1,
           entityName: "DegreeProgram",
-          entityId: result.id || 0,
+          entityId: result.degreeProgramId || result.id || 0,
           actionType: "CREATE",
           description: `Created degree program ${payload.degreeName}`,
         });
@@ -101,11 +101,12 @@ export default function DegreeProgramsPage({
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await StudentService.deleteDegreeProgram(deleteTarget.id);
+      const targetId = deleteTarget.degreeProgramId || deleteTarget.id;
+      await StudentService.deleteDegreeProgram(targetId);
       await AuditService.logAction({
         adminId: 1,
         entityName: "DegreeProgram",
-        entityId: deleteTarget.id || 0,
+        entityId: targetId || 0,
         actionType: "DELETE",
         description: `Deleted degree program ${deleteTarget.degreeName}`,
       });
@@ -142,7 +143,7 @@ export default function DegreeProgramsPage({
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {filteredPrograms.length ? (
           filteredPrograms.map(program => (
-            <Card key={program.id || program.degreeName}>
+            <Card key={program.degreeProgramId || program.id || program.degreeName}>
               <div className="flex justify-between items-start gap-3 mb-3">
                 <div>
                   <div className="text-xs uppercase tracking-wide text-gray-500">Degree</div>
