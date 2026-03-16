@@ -1,0 +1,151 @@
+import { useState } from "react";
+import { Icons } from "../components/Icons";
+import {
+  Breadcrumb, Card, SectionHeading, FormField, Input, Select,
+  ActionButton,
+} from "../components/UI";
+
+const YEARS     = [1, 2, 3, 4];
+const SEMESTERS = [1, 2];
+
+/**
+ * RegisterStudentPage
+ * Props:
+ *   onRegister:     (studentData: object) => void
+ *   onCancel:       () => void
+ *   degreePrograms: Array<{ id: number, degreeName: string }> — from backend
+ */
+export default function RegisterStudentPage({ onRegister, onCancel, degreePrograms = [] }) {
+  const [form, setForm] = useState({
+    firstName: "", lastName: "", dob: "",
+    address: "", address2: "", city: "", postal: "",
+    degreeProgramId: degreePrograms[0]?.degreeProgramId ?? degreePrograms[0]?.id ?? "",
+    year: "1", semester: "1", gpa: "",
+  });
+  const [errors, setErrors] = useState({});
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const validate = () => {
+    const e = {};
+    if (!form.firstName.trim()) e.firstName = "First name is required.";
+    if (!form.lastName.trim())  e.lastName  = "Last name is required.";
+    if (!form.dob)              e.dob       = "Date of birth is required.";
+    if (!form.degreeProgramId)  e.degreeProgramId = "Degree program is required.";
+    return e;
+  };
+
+  const handleSubmit = () => {
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
+    onRegister({ ...form, year: +form.year, semester: +form.semester, degreeProgramId: Number(form.degreeProgramId) });
+  };
+
+  // Helper for simple text / date inputs
+  const field = (label, key, opts = {}) => (
+    <FormField
+      label={label}
+      error={errors[key]}
+      hint={opts.hint}
+      required={opts.required}
+      colSpan={opts.full ? 2 : 1}
+    >
+      <Input
+        type={opts.type || "text"}
+        value={form[key]}
+        onChange={e => { set(key, e.target.value); setErrors(p => ({ ...p, [key]: "" })); }}
+        placeholder={opts.placeholder || ""}
+        error={errors[key]}
+      />
+    </FormField>
+  );
+
+  return (
+    <div>
+      <Breadcrumb items={["Dashboard", "Register New Student"]} />
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">Register New Student</h1>
+
+      <Card>
+        <div className="space-y-8">
+
+          {/* ── Personal Information ── */}
+          <section>
+            <SectionHeading icon={<Icons.User />}>Personal Information</SectionHeading>
+            <div className="grid grid-cols-2 gap-4">
+              {field("First Name", "firstName", { required: true, placeholder: "Enter first name" })}
+              {field("Last Name",  "lastName",  { required: true, placeholder: "Enter last name"  })}
+              {field("Date of Birth", "dob", { type: "date", required: true })}
+            </div>
+          </section>
+
+          {/* ── Contact Information ── */}
+          <section>
+            <SectionHeading icon={<Icons.Location />}>Contact Information</SectionHeading>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField label="Address Line 1" colSpan={2}>
+                <Input value={form.address} onChange={e => set("address", e.target.value)} placeholder="123 Main Street" />
+              </FormField>
+              <FormField label="Address Line 2 (Optional)" colSpan={2}>
+                <Input value={form.address2} onChange={e => set("address2", e.target.value)} placeholder="Apartment, suite, etc." />
+              </FormField>
+              {field("City",        "city",   { placeholder: "City", full: true })}
+              {field("Postal Code", "postal", { placeholder: "00000", full: true })}
+            </div>
+          </section>
+
+          {/* ── Academic Information ── */}
+          <section>
+            <SectionHeading icon={<Icons.BookOpen />}>Academic Information</SectionHeading>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField label="Degree Program" required colSpan={2} error={errors.degreeProgramId}>
+                {degreePrograms.length > 0 ? (
+                  <Select
+                    value={form.degreeProgramId}
+                    onChange={e => { set("degreeProgramId", e.target.value); setErrors(p => ({ ...p, degreeProgramId: "" })); }}
+                    error={errors.degreeProgramId}
+                  >
+                    <option value="">-- Select Degree Program --</option>
+                    {degreePrograms.map(dp => (
+                      <option key={dp.degreeProgramId || dp.id} value={dp.degreeProgramId || dp.id}>
+                        {dp.degreeName || dp.name || `Program ${dp.degreeProgramId || dp.id}`}
+                      </option>
+                    ))}
+                  </Select>
+                ) : (
+                  <p className="text-sm text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                    Loading degree programs… (ensure the backend is running)
+                  </p>
+                )}
+              </FormField>
+
+              <FormField label="Academic Year">
+                <Select value={form.year} onChange={e => set("year", e.target.value)}>
+                  {YEARS.map(y => <option key={y} value={y}>Year {y}</option>)}
+                </Select>
+              </FormField>
+
+              <FormField label="Semester">
+                <Select value={form.semester} onChange={e => set("semester", e.target.value)}>
+                  {SEMESTERS.map(s => <option key={s} value={s}>Semester {s}</option>)}
+                </Select>
+              </FormField>
+
+              {field("Initial GPA (Optional)", "gpa", { type: "number", placeholder: "0.00" })}
+            </div>
+          </section>
+
+          {/* ── Actions ── */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <ActionButton color="gray" onClick={onCancel} outline>
+              Cancel
+            </ActionButton>
+            <ActionButton color="blue" onClick={handleSubmit} icon={<Icons.Register />}>
+              Register Student
+            </ActionButton>
+          </div>
+
+        </div>
+      </Card>
+    </div>
+  );
+}
