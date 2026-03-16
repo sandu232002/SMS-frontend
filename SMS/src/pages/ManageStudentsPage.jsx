@@ -1,0 +1,346 @@
+import { useState, useEffect } from "react";
+import { Icons } from "../components/Icons";
+import {
+  Breadcrumb, PageHeader, Card, Modal, EmptyState,
+  ActionButton, Input, Select, FormField,
+} from "../components/UI";
+
+const DEGREES = ["All", "Software Engineering", "Computer Science", "Information Technology", "Business IT"];
+const STATUSES = ["All", "Active", "Graduated", "Suspended"];
+const EDITABLE_STATUSES = STATUSES.slice(1);
+
+const resolveStudentId = (student) => student?.studentId ?? student?.id ?? null;
+const displayStudentId = (student) =>
+  student?.studentNumber ?? student?.studentId ?? student?.id ?? "—";
+
+/**
+ * ManageStudentsPage
+ * Props:
+ *   students: array
+ *   onDelete: (id: string) => void
+ *   onEdit:   (student: object) => void
+ *   degreePrograms: array
+ */
+export default function ManageStudentsPage({ students, onDelete, onEdit, degreePrograms = [] }) {
+  const [search, setSearch] = useState("");
+  const [filterDegree, setFilterDegree] = useState("All");
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [viewStudent, setViewStudent] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [editTarget, setEditTarget] = useState(null);
+  const [editForm, setEditForm] = useState({
+    firstName: "",
+    lastName: "",
+    address: "",
+    degreeProgramId: "",
+    status: "Active",
+  });
+  const [editErrors, setEditErrors] = useState({});
+
+  const filtered = students.filter(s => {
+    const q = search.toLowerCase();
+    const matchSearch =
+      !q ||
+      s.firstName?.toLowerCase().includes(q) ||
+      s.lastName?.toLowerCase().includes(q) ||
+      s.studentNumber?.toLowerCase().includes(q) ||
+      s.email?.toLowerCase().includes(q);
+    const matchDegree = filterDegree === "All" || s.degree === filterDegree;
+    const matchStatus = filterStatus === "All" || (s.status || "Active") === filterStatus;
+    return matchSearch && matchDegree && matchStatus;
+  });
+
+  const statusStyle = status => ({
+    Active: "bg-green-100 text-green-700",
+    Graduated: "bg-blue-100 text-blue-700",
+    Suspended: "bg-red-100 text-red-600",
+  }[status] || "bg-gray-100 text-gray-600");
+
+  useEffect(() => {
+    if (!editTarget) return;
+    const programId =
+      editTarget.degreeProgramId ??
+      editTarget.degreeProgram?.degreeProgramId ??
+      editTarget.degreeProgram?.id ??
+      "";
+    setEditForm({
+      firstName: editTarget.firstName || "",
+      lastName: editTarget.lastName || "",
+      address: editTarget.address || "",
+      degreeProgramId: programId,
+      status: editTarget.status || "Active",
+    });
+    setEditErrors({});
+  }, [editTarget]);
+
+  const handleEditChange = (field, value) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+    setEditErrors(prev => ({ ...prev, [field]: "" }));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!onEdit || !editTarget) {
+      setEditTarget(null);
+      return;
+    }
+
+    const errors = {};
+    if (!editForm.firstName?.trim()) errors.firstName = "First name is required.";
+    if (!editForm.lastName?.trim()) errors.lastName = "Last name is required.";
+
+    if (Object.keys(errors).length) {
+      setEditErrors(errors);
+      return;
+    }
+
+    const payload = {
+      firstName: editForm.firstName.trim(),
+      lastName: editForm.lastName.trim(),
+      address: editForm.address?.trim() || "",
+      status: editForm.status,
+    };
+
+    if (editForm.degreeProgramId) {
+      payload.degreeProgramId = Number(editForm.degreeProgramId);
+    }
+
+    const studentId = resolveStudentId(editTarget);
+    if (!studentId) {
+      console.error("Cannot update student without an identifier.");
+      setEditTarget(null);
+      return;
+    }
+
+    try {
+      await onEdit(studentId, payload);
+      setEditTarget(null);
+    } catch (err) {
+      console.error("Failed to update student", err);
+    }
+  };
+
+  const handleDeleteConfirm = () => {
+    const studentId = resolveStudentId(deleteTarget);
+    if (!studentId) {
+      console.error("Cannot delete student without an identifier.");
+      setDeleteTarget(null);
+      return;
+    }
+
+    onDelete?.(studentId);
+    setDeleteTarget(null);
+  };
+
+  return (
+    <div>
+      <Breadcrumb items={["Dashboard", "Manage Students"]} />
+
+      <PageHeader
+        title="Manage Students"
+        subtitle={`${filtered.length} student${filtered.length !== 1 ? "s" : ""} found`}
+      />
+
+      <Card padding={false}>
+        {/* Filters */}
+        <div className="p-4 border-b border-gray-50 flex flex-wrap gap-3">
+          <div className="relative flex-1 min-w-52">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+              <Icons.Search />
+            </span>
+            <Input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by name, ID, email…"
+              className="pl-9"
+            />
+          </div>
+
+          <Select
+            value={filterDegree}
+            onChange={e => setFilterDegree(e.target.value)}
+            className="w-auto"
+          >
+            {DEGREES.map(d => <option key={d}>{d}</option>)}
+          </Select>
+
+          <Select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
+            className="w-auto"
+          >
+            {STATUSES.map(s => <option key={s}>{s}</option>)}
+          </Select>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-left">
+                {["Student ID", "Name", "Degree Program", "Status", "Actions"].map(h => (
+                  <th key={h} className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {filtered.length === 0 ? (
+                <EmptyState message="No students match your search or filters." />
+              ) : (
+                filtered.map(s => {
+                  const rowKey = resolveStudentId(s) ?? s.studentNumber ?? `${s.firstName}-${s.lastName}-${s.email}`;
+                  return (
+                    <tr key={rowKey} className="hover:bg-gray-50/60 transition-colors">
+                      <td className="px-5 py-3.5 font-mono text-blue-600 text-xs font-medium whitespace-nowrap">
+                        {displayStudentId(s)}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="font-medium text-gray-800">{s.firstName} {s.lastName}</div>
+                        <div className="text-xs text-gray-400">{s.email || "—"}</div>
+                      </td>
+                      <td className="px-5 py-3.5 text-gray-600">{s.degree || "—"}</td>
+                      <td className="px-5 py-3.5">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusStyle(s.status || "Active")}`}>
+                          {s.status || "Active"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setViewStudent(s)}
+                            className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 transition-colors"
+                            title="View"
+                          >
+                            <Icons.Eye />
+                          </button>
+                          <button
+                            onClick={() => setEditTarget(s)}
+                            className="p-1.5 rounded-lg hover:bg-amber-50 text-amber-500 transition-colors"
+                            title="Edit"
+                          >
+                            <Icons.Edit />
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(s)}
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition-colors"
+                            title="Delete"
+                          >
+                            <Icons.Trash />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* ── View Student Modal ── */}
+      {viewStudent && (
+        <Modal title={`${viewStudent.firstName} ${viewStudent.lastName}`} onClose={() => setViewStudent(null)}>
+          <div className="grid grid-cols-2 gap-5">
+            {[
+              ["Student ID", viewStudent.studentNumber || viewStudent.id],
+              ["Date of Birth", viewStudent.dateOfBirth || viewStudent.dob || "—"],
+              ["Degree Program", viewStudent.degree || "—"],
+              ["Status", viewStudent.status || "Active"],
+              ["Address", viewStudent.address || "—"],
+            ].map(([k, v]) => (
+              <div key={k}>
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{k}</div>
+                <div className="text-gray-800 font-medium mt-0.5 text-sm">{v}</div>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end mt-6 pt-4 border-t border-gray-100">
+            <ActionButton color="gray" onClick={() => setViewStudent(null)} outline>Close</ActionButton>
+          </div>
+        </Modal>
+      )}
+
+      {editTarget && (
+        <Modal title={`Edit ${editTarget.firstName} ${editTarget.lastName}`} onClose={() => setEditTarget(null)}>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="First Name" required error={editErrors.firstName}>
+              <Input
+                value={editForm.firstName}
+                onChange={e => handleEditChange("firstName", e.target.value)}
+                placeholder="First name"
+              />
+            </FormField>
+
+            <FormField label="Last Name" required error={editErrors.lastName}>
+              <Input
+                value={editForm.lastName}
+                onChange={e => handleEditChange("lastName", e.target.value)}
+                placeholder="Last name"
+              />
+            </FormField>
+
+            <FormField label="Address" colSpan={2}>
+              <Input
+                value={editForm.address}
+                onChange={e => handleEditChange("address", e.target.value)}
+                placeholder="123 Main Street"
+              />
+            </FormField>
+
+            <FormField label="Degree Program" colSpan={2}>
+              <Select
+                value={editForm.degreeProgramId}
+                onChange={e => handleEditChange("degreeProgramId", e.target.value)}
+              >
+                <option value="">No change</option>
+                {degreePrograms.map(program => (
+                  <option key={program.degreeProgramId ?? program.id} value={program.degreeProgramId ?? program.id}>
+                    {program.degreeName || program.name || `Program ${program.degreeProgramId ?? program.id}`}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+
+            <FormField label="Status" colSpan={2}>
+              <Select
+                value={editForm.status}
+                onChange={e => handleEditChange("status", e.target.value)}
+              >
+                {EDITABLE_STATUSES.map(status => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </Select>
+            </FormField>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+            <ActionButton color="gray" onClick={() => setEditTarget(null)} outline>Cancel</ActionButton>
+            <ActionButton color="blue" onClick={handleSaveEdit}>Save Changes</ActionButton>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Delete Confirm Modal ── */}
+      {deleteTarget && (
+        <Modal title="Confirm Deletion" onClose={() => setDeleteTarget(null)} size="sm">
+          <p className="text-gray-600 mb-2">
+            Are you sure you want to delete{" "}
+            <strong className="text-gray-800">{deleteTarget.firstName} {deleteTarget.lastName}</strong>?
+          </p>
+          <p className="text-xs text-gray-400 mb-6">This action cannot be undone.</p>
+          <div className="flex justify-end gap-3">
+            <ActionButton color="gray" onClick={() => setDeleteTarget(null)} outline>Cancel</ActionButton>
+            <ActionButton
+              color="red"
+              onClick={handleDeleteConfirm}
+            >
+              Delete Student
+            </ActionButton>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
