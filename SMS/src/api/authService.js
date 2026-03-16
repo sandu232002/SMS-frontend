@@ -1,6 +1,7 @@
 import api from './axiosConfig';
 
 const BASE = '/api/auth';
+const normalizeToken = (value) => value?.replace(/^Bearer\s+/i, "").trim() || null;
 
 export const AuthService = {
 
@@ -23,8 +24,10 @@ export const AuthService = {
             res?.accessToken ||
             null;
 
-        if (jwt) {
-            localStorage.setItem('token', jwt);
+        const normalizedJwt = normalizeToken(jwt);
+
+        if (normalizedJwt) {
+            localStorage.setItem('token', normalizedJwt);
             console.log('[AuthService] Token stored successfully');
         } else {
             console.warn('[AuthService] Token not found in response');

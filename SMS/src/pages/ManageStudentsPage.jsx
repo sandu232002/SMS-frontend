@@ -1,26 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Icons } from "../components/Icons";
 import {
-  Breadcrumb, PageHeader, Card, Modal, Badge, EmptyState,
-  ActionButton, Input, Select,
+  Breadcrumb, PageHeader, Card, Modal, EmptyState,
+  ActionButton, Input, Select, FormField,
 } from "../components/UI";
 
 const DEGREES = ["All", "Software Engineering", "Computer Science", "Information Technology", "Business IT"];
 const STATUSES = ["All", "Active", "Graduated", "Suspended"];
+const EDITABLE_STATUSES = STATUSES.slice(1);
+
+const resolveStudentId = (student) => student?.studentId ?? student?.id ?? null;
+const displayStudentId = (student) =>
+  student?.studentNumber ?? student?.studentId ?? student?.id ?? "—";
 
 /**
  * ManageStudentsPage
  * Props:
  *   students: array
  *   onDelete: (id: string) => void
- *   onEdit:   (student: object) => void  (optional / wire up later)
+ *   onEdit:   (student: object) => void
+ *   degreePrograms: array
  */
-export default function ManageStudentsPage({ students, onDelete }) {
+export default function ManageStudentsPage({ students, onDelete, onEdit, degreePrograms = [] }) {
   const [search, setSearch] = useState("");
   const [filterDegree, setFilterDegree] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
   const [viewStudent, setViewStudent] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [editTarget, setEditTarget] = useState(null);
+  const [editForm, setEditForm] = useState({
+    firstName: "",
+    lastName: "",
+    address: "",
+    degreeProgramId: "",
+    status: "Active",
+  });
+  const [editErrors, setEditErrors] = useState({});
 
   const filtered = students.filter(s => {
     const q = search.toLowerCase();
@@ -35,14 +50,86 @@ export default function ManageStudentsPage({ students, onDelete }) {
     return matchSearch && matchDegree && matchStatus;
   });
 
-  const gpaColor = gpa =>
-    gpa >= 3.7 ? "text-green-600" : gpa >= 3.0 ? "text-blue-600" : "text-amber-600";
-
   const statusStyle = status => ({
     Active: "bg-green-100 text-green-700",
     Graduated: "bg-blue-100 text-blue-700",
     Suspended: "bg-red-100 text-red-600",
   }[status] || "bg-gray-100 text-gray-600");
+
+  useEffect(() => {
+    if (!editTarget) return;
+    const programId =
+      editTarget.degreeProgramId ??
+      editTarget.degreeProgram?.degreeProgramId ??
+      editTarget.degreeProgram?.id ??
+      "";
+    setEditForm({
+      firstName: editTarget.firstName || "",
+      lastName: editTarget.lastName || "",
+      address: editTarget.address || "",
+      degreeProgramId: programId,
+      status: editTarget.status || "Active",
+    });
+    setEditErrors({});
+  }, [editTarget]);
+
+  const handleEditChange = (field, value) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+    setEditErrors(prev => ({ ...prev, [field]: "" }));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!onEdit || !editTarget) {
+      setEditTarget(null);
+      return;
+    }
+
+    const errors = {};
+    if (!editForm.firstName?.trim()) errors.firstName = "First name is required.";
+    if (!editForm.lastName?.trim()) errors.lastName = "Last name is required.";
+
+    if (Object.keys(errors).length) {
+      setEditErrors(errors);
+      return;
+    }
+
+    const payload = {
+      firstName: editForm.firstName.trim(),
+      lastName: editForm.lastName.trim(),
+      address: editForm.address?.trim() || "",
+      status: editForm.status,
+    };
+
+    if (editForm.degreeProgramId) {
+      payload.degreeProgramId = Number(editForm.degreeProgramId);
+    }
+
+    const studentId = resolveStudentId(editTarget);
+    if (!studentId) {
+      console.error("Cannot update student without an identifier.");
+      setEditTarget(null);
+      return;
+    }
+
+    try {
+      await onEdit(studentId, payload);
+      setEditTarget(null);
+    } catch (err) {
+      console.error("Failed to update student", err);
+    }
+  };
+
+  const handleDeleteConfirm = () => {
+    const studentId = resolveStudentId(deleteTarget);
+    if (!studentId) {
+      console.error("Cannot delete student without an identifier.");
+      setDeleteTarget(null);
+      return;
+    }
+
+    onDelete?.(studentId);
+    setDeleteTarget(null);
+  };
 
   return (
     <div>
@@ -101,47 +188,51 @@ export default function ManageStudentsPage({ students, onDelete }) {
               {filtered.length === 0 ? (
                 <EmptyState message="No students match your search or filters." />
               ) : (
-                filtered.map(s => (
-                  <tr key={s.id || s.studentNumber} className="hover:bg-gray-50/60 transition-colors">
-                    <td className="px-5 py-3.5 font-mono text-blue-600 text-xs font-medium whitespace-nowrap">
-                      {s.studentNumber || s.id}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="font-medium text-gray-800">{s.firstName} {s.lastName}</div>
-                      <div className="text-xs text-gray-400">{s.email || "—"}</div>
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-600">{s.degree || "—"}</td>
-                    <td className="px-5 py-3.5">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusStyle(s.status || "Active")}`}>
-                        {s.status || "Active"}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => setViewStudent(s)}
-                          className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 transition-colors"
-                          title="View"
-                        >
-                          <Icons.Eye />
-                        </button>
-                        <button
-                          className="p-1.5 rounded-lg hover:bg-amber-50 text-amber-500 transition-colors"
-                          title="Edit"
-                        >
-                          <Icons.Edit />
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(s)}
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition-colors"
-                          title="Delete"
-                        >
-                          <Icons.Trash />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                filtered.map(s => {
+                  const rowKey = resolveStudentId(s) ?? s.studentNumber ?? `${s.firstName}-${s.lastName}-${s.email}`;
+                  return (
+                    <tr key={rowKey} className="hover:bg-gray-50/60 transition-colors">
+                      <td className="px-5 py-3.5 font-mono text-blue-600 text-xs font-medium whitespace-nowrap">
+                        {displayStudentId(s)}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="font-medium text-gray-800">{s.firstName} {s.lastName}</div>
+                        <div className="text-xs text-gray-400">{s.email || "—"}</div>
+                      </td>
+                      <td className="px-5 py-3.5 text-gray-600">{s.degree || "—"}</td>
+                      <td className="px-5 py-3.5">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusStyle(s.status || "Active")}`}>
+                          {s.status || "Active"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setViewStudent(s)}
+                            className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 transition-colors"
+                            title="View"
+                          >
+                            <Icons.Eye />
+                          </button>
+                          <button
+                            onClick={() => setEditTarget(s)}
+                            className="p-1.5 rounded-lg hover:bg-amber-50 text-amber-500 transition-colors"
+                            title="Edit"
+                          >
+                            <Icons.Edit />
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(s)}
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition-colors"
+                            title="Delete"
+                          >
+                            <Icons.Trash />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -171,6 +262,66 @@ export default function ManageStudentsPage({ students, onDelete }) {
         </Modal>
       )}
 
+      {editTarget && (
+        <Modal title={`Edit ${editTarget.firstName} ${editTarget.lastName}`} onClose={() => setEditTarget(null)}>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="First Name" required error={editErrors.firstName}>
+              <Input
+                value={editForm.firstName}
+                onChange={e => handleEditChange("firstName", e.target.value)}
+                placeholder="First name"
+              />
+            </FormField>
+
+            <FormField label="Last Name" required error={editErrors.lastName}>
+              <Input
+                value={editForm.lastName}
+                onChange={e => handleEditChange("lastName", e.target.value)}
+                placeholder="Last name"
+              />
+            </FormField>
+
+            <FormField label="Address" colSpan={2}>
+              <Input
+                value={editForm.address}
+                onChange={e => handleEditChange("address", e.target.value)}
+                placeholder="123 Main Street"
+              />
+            </FormField>
+
+            <FormField label="Degree Program" colSpan={2}>
+              <Select
+                value={editForm.degreeProgramId}
+                onChange={e => handleEditChange("degreeProgramId", e.target.value)}
+              >
+                <option value="">No change</option>
+                {degreePrograms.map(program => (
+                  <option key={program.degreeProgramId ?? program.id} value={program.degreeProgramId ?? program.id}>
+                    {program.degreeName || program.name || `Program ${program.degreeProgramId ?? program.id}`}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+
+            <FormField label="Status" colSpan={2}>
+              <Select
+                value={editForm.status}
+                onChange={e => handleEditChange("status", e.target.value)}
+              >
+                {EDITABLE_STATUSES.map(status => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </Select>
+            </FormField>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+            <ActionButton color="gray" onClick={() => setEditTarget(null)} outline>Cancel</ActionButton>
+            <ActionButton color="blue" onClick={handleSaveEdit}>Save Changes</ActionButton>
+          </div>
+        </Modal>
+      )}
+
       {/* ── Delete Confirm Modal ── */}
       {deleteTarget && (
         <Modal title="Confirm Deletion" onClose={() => setDeleteTarget(null)} size="sm">
@@ -183,7 +334,7 @@ export default function ManageStudentsPage({ students, onDelete }) {
             <ActionButton color="gray" onClick={() => setDeleteTarget(null)} outline>Cancel</ActionButton>
             <ActionButton
               color="red"
-              onClick={() => { onDelete(deleteTarget.id); setDeleteTarget(null); }}
+              onClick={handleDeleteConfirm}
             >
               Delete Student
             </ActionButton>

@@ -20,7 +20,6 @@ const defaultForm = () => ({
   courseId: "",
   academicYear: String(new Date().getFullYear()),
   semester: "1",
-  status: STATUS_OPTIONS[0],
 });
 
 export default function EnrollmentsPage({
@@ -91,7 +90,6 @@ export default function EnrollmentsPage({
         courseId: Number(formData.courseId),
         academicYear: formData.academicYear,
         semester: formData.semester,
-        status: formData.status,
       };
       const result = await EnrollmentService.createEnrollment(payload);
       await AuditService.logAction({
@@ -269,18 +267,6 @@ export default function EnrollmentsPage({
               >
                 <option value="1">Semester 1</option>
                 <option value="2">Semester 2</option>
-              </Select>
-            </FormField>
-            <FormField label="Status">
-              <Select
-                value={formData.status}
-                onChange={e => setFormData(f => ({ ...f, status: e.target.value }))}
-              >
-                {STATUS_OPTIONS.map(status => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
               </Select>
             </FormField>
           </div>

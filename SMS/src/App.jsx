@@ -121,6 +121,11 @@ export default function App() {
 
   // ── Delete a student ─────────────────────────────────────────────────────
   const handleDelete = async (id) => {
+    if (!id) {
+      showToast("Unable to delete student: missing identifier.", "error");
+      return;
+    }
+
     try {
       await StudentService.deleteStudent(id);
 
@@ -137,6 +142,35 @@ export default function App() {
     } catch (err) {
       console.error("Failed to delete student", err);
       showToast("Failed to delete student", "error");
+    }
+  };
+
+  const handleUpdateStudent = async (studentId, updates) => {
+    if (!studentId) {
+      showToast("Unable to update student: missing identifier.", "error");
+      return;
+    }
+
+    try {
+      await StudentService.updateStudent(studentId, updates);
+
+      const updatedName = `${updates.firstName?.trim() || ""} ${updates.lastName?.trim() || ""}`.trim();
+
+      await AuditService.logAction({
+        adminId,
+        entityName: "Student",
+        entityId: studentId,
+        actionType: "UPDATE",
+        description: updatedName
+          ? `Updated student ${updatedName}`
+          : `Updated student ID: ${studentId}`,
+      });
+
+      showToast("Student updated successfully.");
+      fetchGlobalData();
+    } catch (err) {
+      console.error("Failed to update student", err);
+      showToast("Failed to update student", "error");
     }
   };
 
@@ -171,6 +205,8 @@ export default function App() {
           <ManageStudentsPage
             students={students}
             onDelete={handleDelete}
+            onEdit={handleUpdateStudent}
+            degreePrograms={degreePrograms}
             loading={loading}
           />
         );
